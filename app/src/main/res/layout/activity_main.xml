@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:translationX="?android:attr/buttonCornerRadius">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="425dp">
+
+    </FrameLayout>
+
+    <Switch
+        android:id="@+id/switch_start_simulate_gps"
+        android:layout_width="match_parent"
+        android:layout_height="35dp"
+        android:minHeight="48dp"
+        android:text="开始模拟" />
+
+</LinearLayout>
