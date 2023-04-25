@@ -1,18 +1,21 @@
 package com.example.nju_norun;
 
 
-import android.content.Context;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.SystemClock;
 
+
+import java.util.Random;
 import java.util.Arrays;
 import java.util.List;
 
 public class SimulatedLocationProvider extends Thread {
     public LocationManager mLocationManager;
     public String mProviderName;
-    private boolean mInterrupted = false;
+    Random random = new Random();
+    private boolean isReachedNextPosition = false;
+    private boolean isInterrupted = false;
 
     //鼓楼校区操场的经纬度
     //TODO:支持仙林校区的经纬度及自定义
@@ -25,28 +28,69 @@ public class SimulatedLocationProvider extends Thread {
     }
 
     public void run() {
-        mInterrupted = false;
+        isInterrupted = false;
+        int listCount = 0;
+        double currentLatitude = latitudeList.get(0);
+        double currentLongitude = longitudeList.get(0);
         try {
-            while (!mInterrupted) {
+            while (!isInterrupted) {
                 // 模拟位置数据
                 Location location = new Location(mProviderName);
-                location.setLatitude(32.056378433201594);
-                location.setLongitude(118.7785434721809);
+                location.setLatitude(currentLatitude);
+                location.setLongitude(currentLongitude);
                 location.setAccuracy(5.0f);
+                float speed = (float) (random.nextDouble() * 6.43 - 2.08);
+                location.setSpeed(speed);
                 location.setTime(System.currentTimeMillis());
                 location.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
                 // 发送位置数据
                 mLocationManager.setTestProviderLocation(mProviderName, location);
+                int timeSleep = 500;
+                List<Double> position = getCurrentPosition(currentLatitude, currentLongitude, listCount,speed * (timeSleep +50)/1000);
+                currentLatitude = position.get(0);
+                currentLongitude = position.get(1);
+                if (isReachedNextPosition) {
+                    listCount += 1;
+                    isReachedNextPosition = false;
+                }
                 // 等待一段时间
-                Thread.sleep(100);
+                Thread.sleep(timeSleep);
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
+    private int nextCount(int count) {
+        if (count != latitudeList.size() - 1)
+            return count + 1;
+        else return 0;
+    }
+
+    private List<Double> getCurrentPosition(double currentLatitude, double currentLongitude, int listCount, float distance) {
+        //计算经过一段距离后的地点，同时改变isReachedNextPosition
+        double n = calculateDistance(currentLatitude, currentLongitude, latitudeList.get(nextCount(listCount)), longitudeList.get(listCount)) / distance;
+        if (n <= 1) {
+            isReachedNextPosition = true;
+            return Arrays.asList(latitudeList.get(nextCount(listCount)), longitudeList.get(nextCount(listCount)));
+        } else {
+            double tempLat = currentLatitude + (latitudeList.get(nextCount(listCount)) - latitudeList.get(listCount)) / n;
+            double tempLon = currentLongitude + (longitudeList.get(nextCount(listCount)) - longitudeList.get(listCount)) / n;
+            return Arrays.asList(tempLat, tempLon);
+        }
+    }
+
+    private double calculateDistance(double latA, double mLonA, double latB, double mLonB) {
+        //用两点的经纬度计算距离
+        final double pi = 3.14159265359;
+        final int r = 6371004;
+        double c = Math.sin(latA * pi / 180) * Math.sin(latB * pi / 180) + Math.cos(latA * pi / 180) * Math.cos(latB * pi / 180) * Math.cos((mLonA - mLonB) * pi / 180);
+        return Math.abs(r * Math.acos(c) * pi);
+    }
+
     public void interrupt() {
-        mInterrupted = true;
+        //中断
+        isInterrupted = true;
         super.interrupt();
     }
 }
