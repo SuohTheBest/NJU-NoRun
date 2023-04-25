@@ -1,5 +1,7 @@
 package com.example.nju_norun;
 
+
+import android.content.Context;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.SystemClock;
@@ -8,8 +10,8 @@ import java.util.Arrays;
 import java.util.List;
 
 public class SimulatedLocationProvider extends Thread {
-    private LocationManager mLocationManager;
-    private String mProviderName;
+    public LocationManager mLocationManager;
+    public String mProviderName;
     private boolean mInterrupted = false;
 
     //鼓楼校区操场的经纬度
@@ -22,7 +24,8 @@ public class SimulatedLocationProvider extends Thread {
         mProviderName = providerName;
     }
 
-    public void run(int time) {
+    public void run() {
+        mInterrupted = false;
         try {
             while (!mInterrupted) {
                 // 模拟位置数据
@@ -34,9 +37,8 @@ public class SimulatedLocationProvider extends Thread {
                 location.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
                 // 发送位置数据
                 mLocationManager.setTestProviderLocation(mProviderName, location);
-
                 // 等待一段时间
-                Thread.sleep(1000);
+                Thread.sleep(100);
             }
         } catch (InterruptedException e) {
             e.printStackTrace();

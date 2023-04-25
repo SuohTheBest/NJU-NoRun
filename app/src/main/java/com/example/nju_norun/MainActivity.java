@@ -5,10 +5,12 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
 import android.location.LocationListener;
+import android.location.LocationProvider;
 import android.location.provider.ProviderProperties;
 import android.os.Bundle;
 import android.os.Process;
@@ -19,6 +21,7 @@ import android.widget.TextView;
 import androidx.core.app.ActivityCompat;
 
 public class MainActivity extends Activity {
+
     private static final long MIN_TIME_BETWEEN_UPDATES = 10;
     private static final float MIN_DISTANCE_CHANGE_FOR_UPDATES = 2.5f;
     private static boolean isProvidedPermission = false;
@@ -29,32 +32,46 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstance);
         setContentView(R.layout.activity_main);
         Switch switchSimulateGps = (Switch) findViewById(R.id.switch_start_simulate_gps);
+        TextView textShowGPS = findViewById(R.id.text_show_gps);
+        TextView textShowStatus = findViewById(R.id.text_2);
         switchSimulateGps.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             private LocationManager mLocationManager;
             private String mProviderName;
-            private SimulatedLocationProvider mSimulatedLocationProvider;
+
+            private SimulatedLocationProvider mSimulatedLocationProvider = new SimulatedLocationProvider((LocationManager) getSystemService(Context.LOCATION_SERVICE), "gps");
+
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     // 启动模拟GPS定位
-
-                    if (startMockPosition()) {
-                        //TODO：输出成功信息，同时开启GPS模拟
-                        mLocationManager.addTestProvider(mProviderName, false, false, false, false, true, true, true, ProviderProperties.POWER_USAGE_HIGH, ProviderProperties.ACCURACY_FINE);
-                        mLocationManager.setTestProviderEnabled(mProviderName, true);
-                        mSimulatedLocationProvider = new SimulatedLocationProvider(mLocationManager, mProviderName);
+                    //TODO：输出成功信息，同时开启GPS模拟
+                    textShowStatus.setText("开始模拟！");
+                    textShowStatus.setTextColor(Color.GREEN);//绿色
+                    try {
+                        mSimulatedLocationProvider.mLocationManager.addTestProvider(mSimulatedLocationProvider.mProviderName, false, false, false, false, true, true, true, ProviderProperties.POWER_USAGE_HIGH, ProviderProperties.ACCURACY_FINE);
+                        mSimulatedLocationProvider.mLocationManager.setTestProviderEnabled(mSimulatedLocationProvider.mProviderName, true);
+                        mSimulatedLocationProvider.mLocationManager.setTestProviderStatus(LocationManager.GPS_PROVIDER, LocationProvider.AVAILABLE, null, System.currentTimeMillis());
                         mSimulatedLocationProvider.start();
-
-                    } else {
-                        //TODO：没有打开定位服务，输出打开定位服务的信息，同时关闭按钮
-                        mLocationManager.removeTestProvider(mProviderName);
-                        mSimulatedLocationProvider.interrupt();
-
+                    } catch (SecurityException securityException) {
+                        textShowStatus.setText("未允许位置模拟，请前往开发者模式勾选允许位置调试！");
+                        textShowStatus.setTextColor(Color.RED);//红色
                     }
+
                 } else {
-                    // TODO：停止模拟GPS定位
-                    mLocationManager.removeTestProvider(mProviderName);
-                    mSimulatedLocationProvider.interrupt();
+                    //停止模拟GPS定位
+                    textShowStatus.setText("GPS模拟已停止！");
+                    textShowStatus.setTextColor(Color.GREEN);//绿色
+                    try {
+                        mLocationManager.removeTestProvider(mSimulatedLocationProvider.mProviderName);
+                        mSimulatedLocationProvider.interrupt();
+                    } catch (SecurityException securityException) {
+                        textShowStatus.setText("未允许位置模拟，请前往开发者模式勾选允许位置调试！");
+                        textShowStatus.setTextColor(Color.RED);//红色
+                    }catch (NullPointerException nullPointerException)
+                    {
+                        textShowStatus.setText("GPS模拟已停止！");
+                        textShowStatus.setTextColor(Color.GREEN);//绿色
+                    }
                 }
             }
         });
@@ -63,10 +80,12 @@ public class MainActivity extends Activity {
     private LocationListener locationListener = new LocationListener() {
         @Override
         public void onLocationChanged(Location location) {
-            // TODO：处理位置更新事件
+            // 处理位置更新事件
+            TextView textShowGPS = findViewById(R.id.text_show_gps);
+            textShowGPS.setText("经度：" + location.getLongitude() + "  纬度" + location.getLatitude());
         }
 
-        @Override
+        /*@Override
         public void onStatusChanged(String provider, int status, Bundle extras) {
             // TODO：处理位置状态变化事件
         }
@@ -79,10 +98,10 @@ public class MainActivity extends Activity {
         @Override
         public void onProviderDisabled(String provider) {
             // TODO:处理位置提供程序禁用事件
-        }
+        }*/
     };
 
-    public boolean startMockPosition() {
+    public boolean startTrackPosition() {
         LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         boolean isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         boolean isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
@@ -139,7 +158,6 @@ public class MainActivity extends Activity {
             }
         }
     }
-
 }
 
 
