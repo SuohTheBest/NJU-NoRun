@@ -4,6 +4,7 @@ package com.example.nju_norun;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.SystemClock;
+import android.util.Log;
 
 
 import java.util.Random;
@@ -28,36 +29,39 @@ public class SimulatedLocationProvider extends Thread {
     }
 
     public void run() {
-        isInterrupted = false;
         int listCount = 0;
         double currentLatitude = latitudeList.get(0);
         double currentLongitude = longitudeList.get(0);
-        try {
-            while (!isInterrupted) {
-                // 模拟位置数据
-                Location location = new Location(mProviderName);
-                location.setLatitude(currentLatitude);
-                location.setLongitude(currentLongitude);
-                location.setAccuracy(5.0f);
-                float speed = (float) (random.nextDouble() * 6.43 - 2.08);
-                location.setSpeed(speed);
-                location.setTime(System.currentTimeMillis());
-                location.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
-                // 发送位置数据
-                mLocationManager.setTestProviderLocation(mProviderName, location);
-                int timeSleep = 500;
-                List<Double> position = getCurrentPosition(currentLatitude, currentLongitude, listCount,speed * (timeSleep +50)/1000);
-                currentLatitude = position.get(0);
-                currentLongitude = position.get(1);
-                if (isReachedNextPosition) {
-                    listCount += 1;
-                    isReachedNextPosition = false;
-                }
-                // 等待一段时间
-                Thread.sleep(timeSleep);
+
+        while (!isInterrupted) {
+            // 模拟位置数据
+            Location location = new Location(mProviderName);
+            location.setLatitude(currentLatitude);
+            location.setLongitude(currentLongitude);
+            location.setAccuracy(0.5f);
+            float speed = (float) (random.nextDouble() * 2.35 + 2.08);
+            location.setSpeed(speed);
+            location.setTime(System.currentTimeMillis());
+            location.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
+            // 发送位置数据
+            mLocationManager.setTestProviderLocation(mProviderName, location);
+            int timeSleep = 500;
+            List<Double> position = getCurrentPosition(currentLatitude, currentLongitude, listCount, speed * (timeSleep + 50) / 1000);
+            currentLatitude = position.get(0);
+            currentLongitude = position.get(1);
+            if (isReachedNextPosition) {
+                listCount = nextCount(listCount);
+                isReachedNextPosition = false;
             }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            // 等待一段时间
+            try {
+                Thread.sleep(timeSleep);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                Log.e("线程","异常！");
+                break;
+            }
+
         }
     }
 
@@ -69,7 +73,7 @@ public class SimulatedLocationProvider extends Thread {
 
     private List<Double> getCurrentPosition(double currentLatitude, double currentLongitude, int listCount, float distance) {
         //计算经过一段距离后的地点，同时改变isReachedNextPosition
-        double n = calculateDistance(currentLatitude, currentLongitude, latitudeList.get(nextCount(listCount)), longitudeList.get(listCount)) / distance;
+        double n = calculateDistance(currentLatitude, currentLongitude, latitudeList.get(nextCount(listCount)), longitudeList.get(nextCount(listCount))) / distance;
         if (n <= 1) {
             isReachedNextPosition = true;
             return Arrays.asList(latitudeList.get(nextCount(listCount)), longitudeList.get(nextCount(listCount)));

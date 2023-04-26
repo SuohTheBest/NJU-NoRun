@@ -1,5 +1,6 @@
 package com.example.nju_norun;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -14,6 +15,7 @@ import android.location.LocationProvider;
 import android.location.provider.ProviderProperties;
 import android.os.Bundle;
 import android.os.Process;
+import android.util.Log;
 import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -25,7 +27,6 @@ public class MainActivity extends Activity {
     private static final long MIN_TIME_BETWEEN_UPDATES = 10;
     private static final float MIN_DISTANCE_CHANGE_FOR_UPDATES = 2.5f;
     private static boolean isProvidedPermission = false;
-    private static String provider = null;
 
 
     protected void onCreate(Bundle savedInstance) {
@@ -34,22 +35,25 @@ public class MainActivity extends Activity {
         Switch switchSimulateGps = (Switch) findViewById(R.id.switch_start_simulate_gps);
         TextView textShowGPS = findViewById(R.id.text_show_gps);
         TextView textShowStatus = findViewById(R.id.text_2);
+        if (!checkGPSEnabled()) {
+            textShowStatus.setText("位置权限未打开，请打开位置权限！");
+            textShowStatus.setTextColor(Color.RED);
+        }
+        startTrackPosition();
         switchSimulateGps.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            private LocationManager mLocationManager;
-            private String mProviderName;
 
-            private SimulatedLocationProvider mSimulatedLocationProvider = new SimulatedLocationProvider((LocationManager) getSystemService(Context.LOCATION_SERVICE), "gps");
+            private SimulatedLocationProvider mSimulatedLocationProvider;
 
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
-                    // 启动模拟GPS定位
-                    //TODO：输出成功信息，同时开启GPS模拟
+                    //输出成功信息，同时开启GPS模拟
+                    mSimulatedLocationProvider = new SimulatedLocationProvider((LocationManager) getSystemService(Context.LOCATION_SERVICE), LocationManager.GPS_PROVIDER);
                     textShowStatus.setText("开始模拟！");
                     textShowStatus.setTextColor(Color.GREEN);//绿色
                     try {
-                        mSimulatedLocationProvider.mLocationManager.addTestProvider(mSimulatedLocationProvider.mProviderName, false, false, false, false, true, true, true, ProviderProperties.POWER_USAGE_HIGH, ProviderProperties.ACCURACY_FINE);
-                        mSimulatedLocationProvider.mLocationManager.setTestProviderEnabled(mSimulatedLocationProvider.mProviderName, true);
+                        mSimulatedLocationProvider.mLocationManager.addTestProvider(LocationManager.GPS_PROVIDER, true, true, false, false, true, true, true, ProviderProperties.POWER_USAGE_HIGH, ProviderProperties.ACCURACY_FINE);
+                        mSimulatedLocationProvider.mLocationManager.setTestProviderEnabled(LocationManager.GPS_PROVIDER, true);
                         mSimulatedLocationProvider.mLocationManager.setTestProviderStatus(LocationManager.GPS_PROVIDER, LocationProvider.AVAILABLE, null, System.currentTimeMillis());
                         mSimulatedLocationProvider.start();
                     } catch (SecurityException securityException) {
@@ -62,15 +66,15 @@ public class MainActivity extends Activity {
                     textShowStatus.setText("GPS模拟已停止！");
                     textShowStatus.setTextColor(Color.GREEN);//绿色
                     try {
-                        mLocationManager.removeTestProvider(mSimulatedLocationProvider.mProviderName);
+                        mSimulatedLocationProvider.mLocationManager.removeTestProvider(mSimulatedLocationProvider.mProviderName);
                         mSimulatedLocationProvider.interrupt();
                     } catch (SecurityException securityException) {
                         textShowStatus.setText("未允许位置模拟，请前往开发者模式勾选允许位置调试！");
                         textShowStatus.setTextColor(Color.RED);//红色
-                    }catch (NullPointerException nullPointerException)
-                    {
+                    } catch (NullPointerException nullPointerException) {
                         textShowStatus.setText("GPS模拟已停止！");
                         textShowStatus.setTextColor(Color.GREEN);//绿色
+                        mSimulatedLocationProvider.interrupt();
                     }
                 }
             }
@@ -82,7 +86,7 @@ public class MainActivity extends Activity {
         public void onLocationChanged(Location location) {
             // 处理位置更新事件
             TextView textShowGPS = findViewById(R.id.text_show_gps);
-            textShowGPS.setText("经度：" + location.getLongitude() + "  纬度" + location.getLatitude());
+            textShowGPS.setText("经度：" + changeToDFM(location.getLongitude()) + "  纬度" + changeToDFM(location.getLatitude()));
         }
 
         /*@Override
@@ -101,17 +105,10 @@ public class MainActivity extends Activity {
         }*/
     };
 
-    public boolean startTrackPosition() {
+    private boolean checkGPSEnabled() {
+        //检查GPS的启用状况以及权限，如果权限未启用，则请求权限
         LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         boolean isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-        boolean isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-        if (!isGpsEnabled && !isNetworkEnabled) return false;
-        //选择位置提供者
-        provider = LocationManager.GPS_PROVIDER;
-        if (!isGpsEnabled && isNetworkEnabled) {
-            provider = LocationManager.NETWORK_PROVIDER;
-        }
-
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // 权限：ACCESS_FINE_LOCATION && ACCESS_COARSE_LOCATION
             if (ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.ACCESS_FINE_LOCATION) ||
@@ -140,10 +137,24 @@ public class MainActivity extends Activity {
         } else {
             isProvidedPermission = true;
         }
+        if (!isGpsEnabled) {
+            return false;
+        } else
+            return true;
+    }
+
+    @SuppressLint("MissingPermission")
+    public void startTrackPosition() {
+        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        TextView textShowGPS = findViewById(R.id.text_show_gps);
+        LocationProvider provider = locationManager.getProvider(LocationManager.GPS_PROVIDER);
+        if (provider == null) {
+            Log.e("startTrackPosition", "startTrackPosition:provider=null");
+        }
         //已经获得了权限,实时更新位置
-        if (isProvidedPermission)
-            locationManager.requestLocationUpdates(provider, MIN_TIME_BETWEEN_UPDATES, MIN_DISTANCE_CHANGE_FOR_UPDATES, locationListener);
-        return true;
+        if (isProvidedPermission) {
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME_BETWEEN_UPDATES, MIN_DISTANCE_CHANGE_FOR_UPDATES, locationListener);
+        }
     }
 
     @Override
@@ -157,6 +168,20 @@ public class MainActivity extends Activity {
                 Process.killProcess(Process.myPid());
             }
         }
+    }
+
+    /**
+     * 将经纬度转换为度分秒格式
+     *
+     * @param du 116.418847
+     * @return 116°25'7.85"
+     */
+    public static String changeToDFM(double du) {
+        int du1 = (int) du;
+        double tp = (du - du1) * 60;
+        int fen = (int) tp;
+        String miao = String.format("%.2f", Math.abs(((tp - fen) * 60)));
+        return du1 + "°" + Math.abs(fen) + "'" + miao + "\"";
     }
 }
 
