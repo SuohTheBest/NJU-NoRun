@@ -3,8 +3,11 @@
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_MOCK_LOCATION"
         tools:ignore="MockLocation,ProtectedPermissions" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -15,6 +18,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.NJUNoRun"
         tools:targetApi="31">
+        <receiver android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.PHONE_STATE" />
+            </intent-filter>
+        </receiver>
+        <meta-data
+            android:name="com.amap.api.v2.apikey"
+            android:value="c9ca70d8e8330ee14061ec4138bfc47c"/>
         <activity
             android:name="com.example.nju_norun.MainActivity"
             android:exported="true"

@@ -9,3 +9,5 @@ y
 Iapp/src/androidTest/java/com/example/nju_norun/ExampleInstrumentedTest.kt,f\2\f20c6f25ac0119d48d36ac5e4df8c0e0bbf716df
 j
 :app/src/test/java/com/example/nju_norun/ExampleUnitTest.kt,b\a\ba0cde8d4d4796c79129050c586dc0c930ad4b93
+P
+ app/release/output-metadata.json,0\7\079ee2b81fdfd2faf349bcf552fe1a1bc16be431

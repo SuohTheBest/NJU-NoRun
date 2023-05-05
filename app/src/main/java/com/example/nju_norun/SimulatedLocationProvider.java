@@ -35,16 +35,16 @@ public class SimulatedLocationProvider extends Thread {
 
         while (!isInterrupted) {
             // 模拟位置数据
-            Location location = new Location(mProviderName);
-            location.setLatitude(currentLatitude);
-            location.setLongitude(currentLongitude);
-            location.setAccuracy(0.5f);
+            Location location1 = new Location(mProviderName);
+            location1.setLatitude(currentLatitude);
+            location1.setLongitude(currentLongitude);
+            location1.setAccuracy(0.5f);
             float speed = (float) (random.nextDouble() * 2.35 + 2.08);
-            location.setSpeed(speed);
-            location.setTime(System.currentTimeMillis());
-            location.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
+            location1.setSpeed(speed);
+            location1.setTime(System.currentTimeMillis());
+            location1.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
             // 发送位置数据
-            mLocationManager.setTestProviderLocation(mProviderName, location);
+            mLocationManager.setTestProviderLocation(mProviderName, location1);
             int timeSleep = 500;
             List<Double> position = getCurrentPosition(currentLatitude, currentLongitude, listCount, speed * (timeSleep + 50) / 1000);
             currentLatitude = position.get(0);
@@ -58,7 +58,7 @@ public class SimulatedLocationProvider extends Thread {
                 Thread.sleep(timeSleep);
             } catch (InterruptedException e) {
                 e.printStackTrace();
-                Log.e("线程","异常！");
+                Log.e("线程", "异常！");
                 break;
             }
 
